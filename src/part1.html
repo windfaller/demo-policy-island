@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>示範市・政策島</title>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+:root{--coral:#db6a41;--ink:#211d1d;--cream:#fff8f4;--yellow:#fcea8b;--stone:#c5b5a7;--green:#71806a;--teal:#3e7c8c;
+--font:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+--sh:0 1px 2px #4a2a1410,0 6px 16px #4a2a1414,0 24px 48px #4a2a1418;}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;font-family:var(--font);color:var(--ink);background:radial-gradient(circle at 50% 40%,#fffdf9,#edddcf);}
+#app{position:fixed;inset:0}
+#app canvas{display:block;touch-action:none}
+#labels{position:absolute;inset:0;pointer-events:none}
+button{font-family:var(--font);min-height:44px;border-radius:9px;border:1px solid #e6d8ca;background:#fff;color:var(--ink);cursor:pointer;font-size:13px;padding:0 12px}
+button:hover{background:var(--yellow)}
+button[aria-pressed="true"],button:active{background:var(--ink);color:#fff;border-color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+.eyebrow{font:700 10px var(--mono);letter-spacing:2px;text-transform:uppercase;color:var(--coral)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#fff;box-shadow:0 2px 8px #4a2a1414;padding:6px 12px;font-size:12px;border:none;min-height:32px;margin:3px}
+.chip.cream{background:var(--cream)}
+.glass{background:#fffaf5cc;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--sh)}
+/* loading */
+#loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle,#fffdf9,#edddcf);z-index:50;transition:opacity .6s}
+#loading h1{font-size:44px;margin:0 0 8px;letter-spacing:4px}
+#loading p{color:#6b5d52}
+#loading.err p{color:#b3261e;max-width:560px;text-align:center;white-space:pre-wrap}
+#loading.done{opacity:0;pointer-events:none}
+/* brand */
+#brand{position:fixed;left:16px;top:16px;border-radius:18px;padding:12px 18px;z-index:5}
+#brand b{display:block;font-size:22px;letter-spacing:2px}
+#brand span{font-size:12px;color:#7a6a5e;letter-spacing:3px}
+#tools{position:fixed;left:16px;top:92px;display:flex;gap:6px;z-index:5}
+#tools button{min-width:44px;font-weight:600}
+/* card */
+#card{position:fixed;left:16px;top:152px;bottom:110px;width:340px;border-radius:22px;background:#fffaf6;box-shadow:var(--sh);z-index:6;display:none;flex-direction:column;overflow:hidden}
+#card.open{display:flex}
+#card .body{overflow:auto;padding:18px 20px 22px;flex:1}
+#card .close{position:absolute;right:10px;top:10px;min-width:44px;z-index:2}
+#card h2{margin:6px 0 6px;font-size:22px}
+#card p{line-height:1.6;font-size:14px;color:#4b4039}
+.ico{font-size:30px;width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:var(--cream);box-shadow:0 2px 8px #4a2a1414}
+.itemrow{display:flex;width:100%;text-align:left;gap:8px;align-items:center;margin:4px 0;background:var(--cream);border-color:transparent}
+.thumb{width:160px;height:160px;border-radius:16px;background:linear-gradient(#fff,#f3e8dc);display:block;margin:0 auto 8px}
+.tiles{display:flex;gap:8px;margin:12px 0}
+.tile{flex:1;background:var(--cream);border-radius:14px;padding:10px 8px;box-shadow:0 2px 8px #4a2a1414;min-width:0}
+.tile .n{font:italic 700 26px Georgia,serif;color:var(--coral)}
+.tile .u{font-size:11px;color:#7a6a5e;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.facts{padding-left:18px;font-size:13px;line-height:1.7}
+.timeline{display:flex;gap:4px;margin-top:10px}
+.timeline div{flex:1;text-align:center;font-size:12px;padding:8px 2px;border-radius:9px;background:#f1e7dd;color:#8a7a6e}
+.timeline div.on{background:var(--ink);color:#fff}
+.ev{display:inline-block;border-radius:999px;padding:3px 10px;font:700 10px var(--mono);letter-spacing:2px;background:var(--yellow)}
+/* sidebar */
+#side{position:fixed;right:16px;top:16px;bottom:110px;width:318px;border-radius:22px;z-index:5;display:flex;flex-direction:column;overflow:hidden}
+#side.hide{display:none}
+#side header{padding:14px 14px 8px}
+#side input{width:100%;min-height:44px;border-radius:9px;border:1px solid #e6d8ca;padding:0 12px;font:14px var(--font);background:#fff}
+.tabs{display:flex;gap:6px;margin-top:8px}.tabs button{flex:1}
+#list{overflow:auto;padding:0 14px 14px;flex:1}
+#list details{background:#fffc;border-radius:14px;margin:6px 0;box-shadow:0 2px 8px #4a2a140c}
+#list summary{padding:12px;cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center;gap:8px}
+#list ol{list-style:none;margin:0;padding:0 8px 8px}
+#list li button{width:100%;text-align:left;border-color:transparent;background:transparent;min-height:40px}
+#list li button:hover{background:var(--yellow)}
+.flowbtn{width:100%;text-align:left;margin:4px 0;display:block;padding:8px 12px}
+/* HUD */
+#hud{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);border-radius:999px;padding:8px 14px;display:flex;gap:6px;align-items:center;z-index:5}
+#hud .clock{font:italic 700 24px Georgia,serif;min-width:76px;text-align:center}
+#hud button{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;font-size:11px;padding:4px 8px;min-width:48px}
+#hud button i{font-style:normal;font-size:16px}
+#hud .sep{width:1px;height:32px;background:#e2d3c4;margin:0 4px}
+#timeBtn{display:none}
+/* log */
+#log{position:fixed;right:350px;top:16px;width:270px;max-height:46vh;border-radius:18px;z-index:5;display:flex;flex-direction:column;overflow:hidden}
+#log.hide{display:none}
+#log header{padding:10px 12px;display:flex;align-items:center;gap:8px}
+#log header select{flex:1;min-height:36px;border-radius:9px;border:1px solid #e6d8ca;font:12px var(--font)}
+.live{font:700 10px var(--mono);letter-spacing:2px;display:flex;align-items:center;gap:4px}
+.live:before{content:"";width:8px;height:8px;border-radius:50%;background:#3fbf6a;box-shadow:0 0 6px #3fbf6a}
+#logList{overflow:auto;padding:0 12px 10px;font-size:12px;line-height:1.5}
+#logList div{padding:5px 0;border-bottom:1px dashed #e8dbcf}
+#logList .t{font:700 10px var(--mono);color:var(--coral);margin-right:6px}
+/* legend */
+#legend{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);border-radius:999px;padding:6px 14px;font-size:12px;z-index:5;display:none;gap:14px;align-items:center}
+#legend.on{display:flex}
+#legend s{display:inline-block;width:34px;height:0;border-top:3px solid var(--coral);vertical-align:middle;margin-right:4px;text-decoration:none}
+/* labels */
+.ilabel{pointer-events:auto;cursor:pointer;background:#fff;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700;box-shadow:0 2px 8px #4a2a1422;white-space:nowrap;transition:opacity .2s,background .2s;user-select:none}
+.ilabel .num{font:700 11px var(--mono);color:var(--coral);margin-right:6px}
+.ilabel.sel{background:var(--ink);color:#fff}
+.ilabel.dim{opacity:.45}
+.ilabel.numonly .nm{display:none}.ilabel.numonly .num{margin:0}
+.lhide{visibility:hidden!important}
+.pin{pointer-events:auto;cursor:pointer;background:var(--coral);color:#fff;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px #4a2a1430}
+.pin.numonly .nm{display:none}
+.bubble{background:#fff;border-radius:10px;padding:3px 8px;font-size:11px;box-shadow:0 2px 6px #4a2a1430;white-space:nowrap}
+/* intro */
+#intro{position:fixed;inset:0;background:#211d1d66;display:none;align-items:center;justify-content:center;z-index:40}
+#intro.on{display:flex}
+#intro .box{background:#fffaf6;border-radius:22px;padding:26px;max-width:420px;box-shadow:var(--sh)}
+#intro ol{padding-left:20px;line-height:1.9}
+.handle{display:none}
+.stage-hide{display:none!important}
+/* mobile */
+@media (max-width:800px){
+  #brand{padding:8px 12px}#brand b{font-size:17px}
+  #tools{flex-direction:column;top:76px}
+  #side,#card{left:0;right:0;width:auto;top:auto;bottom:0;border-radius:22px 22px 0 0;height:52%;max-height:100%}
+  #card{height:34%;z-index:7}
+  .handle{display:block;width:100%;height:24px;cursor:grab;touch-action:none;position:relative;flex:none}
+  .handle:after{content:"";position:absolute;left:50%;top:9px;width:44px;height:5px;border-radius:3px;background:#d4c4b4;transform:translateX(-50%)}
+  #hud{display:none;flex-wrap:wrap;justify-content:center;border-radius:22px;bottom:70px;width:94%}
+  #hud.mopen{display:flex}
+  #timeBtn{display:block;position:fixed;right:16px;bottom:16px;z-index:6}
+  #log{right:12px;left:auto;top:76px;width:200px;max-height:30vh}
+  #legend{bottom:130px}
+}
+</style>
+</head>
+<body>
+<div id="app"><div id="labels"></div></div>
+<div id="loading"><h1>示範市</h1><p id="loadMsg" data-en="Assembling the policy city…">正在組合政策城市…</p></div>
+<div id="brand" class="glass"><b data-en="Demo City">示範市</b><span data-en="POLICY ISLANDS">政策島</span></div>
+<div id="tools" data-stage="3">
+  <button id="bPano" data-en="Overview">全景</button>
+  <button id="bList" aria-pressed="true" data-en="List">清單</button>
+  <button id="bHelp" aria-label="help" data-stage="5">?</button>
+</div>
+<section id="card" aria-live="polite"><div class="handle" data-sheet="card"></div><button class="close" id="cardClose" aria-label="close">✕</button><div class="body" id="cardBody"></div></section>
+<aside id="side" class="glass" data-stage="3"><div class="handle" data-sheet="side"></div>
+  <header><input id="search" type="search" placeholder="搜尋政策…" data-en-ph="Search policies…">
+  <div class="tabs"><button id="tabT" aria-pressed="true" data-en="Themes">政策主題</button><button id="tabF" aria-pressed="false" data-en="Collaboration" data-stage="4">協作關係</button></div></header>
+  <div id="list"></div>
+</aside>
+<div id="log" class="glass" data-stage="4"><header><span class="live">LIVE</span><b style="font-size:13px" data-en="City log">城市日誌</b><select id="logFilter"></select></header><div id="logList"></div></div>
+<div id="legend" class="glass"><span><s></s><span data-en="official">official 正式</span></span><span><s style="border-top-style:dashed"></s><span data-en="thematic">thematic 主題</span></span><span><s style="border-top-style:dotted"></s><span data-en="pending">pending 待確認</span></span></div>
+<nav id="hud" class="glass" data-stage="3">
+  <span class="clock" id="clock">10:00</span>
+  <button data-t="360"><i>🌅</i><span data-en="Dawn">清晨 06</span></button>
+  <button data-t="720"><i>☀️</i><span data-en="Day">白天 12</span></button>
+  <button data-t="1080"><i>🌇</i><span data-en="Dusk">黃昏 18</span></button>
+  <button data-t="1260"><i>🌙</i><span data-en="Night">夜晚 21</span></button>
+  <span class="sep"></span>
+  <button data-tg="names" aria-pressed="false" data-stage="4"><i>🏷</i><span data-en="Names">名牌</span></button>
+  <button data-tg="carry" aria-pressed="true" data-stage="4"><i>📦</i><span data-en="Carry">搬運</span></button>
+  <button data-tg="flows" aria-pressed="false" data-stage="4"><i>〰</i><span data-en="Links">協作線</span></button>
+  <button data-tg="pause" aria-pressed="false"><i>⏸</i><span data-en="Pause">暫停</span></button>
+  <button data-tg="bird" aria-pressed="false"><i>🛰</i><span data-en="Aerial">鳥瞰</span></button>
+  <button data-tg="log" aria-pressed="true" data-stage="4"><i>📜</i><span data-en="Log">日誌</span></button>
+</nav>
+<button id="timeBtn" data-stage="5" data-en="◷ Time">◷ 時間</button>
+<div id="intro" role="dialog" aria-modal="true"><div class="box"><div class="eyebrow" data-en="HOW TO">操作說明</div><h2 style="margin:6px 0" data-en="Welcome to Policy Islands">歡迎來到政策島</h2>
+<ol><li data-en="Drag to orbit, scroll or pinch to zoom.">拖曳旋轉鏡頭，滾輪或雙指縮放。</li><li data-en="Tap an island or building to see its policies.">點小島或建物，查看政策細項。</li><li data-en="Toggle links and watch residents carry things between islands.">打開協作線，看小人在島間搬運。</li></ol>
+<button id="introOk" data-en="Got it">開始探索</button></div></div>
